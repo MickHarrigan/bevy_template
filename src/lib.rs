@@ -5,6 +5,8 @@ mod audio;
 mod loading;
 mod menu;
 mod player;
+mod skybox;
+mod camera;
 
 use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;

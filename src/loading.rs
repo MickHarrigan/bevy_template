@@ -14,7 +14,8 @@ impl Plugin for LoadingPlugin {
             LoadingState::new(GameState::Loading).continue_to_state(GameState::Menu),
         )
         .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
-        .add_collection_to_loading_state::<_, TextureAssets>(GameState::Loading);
+        .add_collection_to_loading_state::<_, TextureAssets>(GameState::Loading)
+        .add_collection_to_loading_state::<_, Skyboxes>(GameState::Loading);
     }
 }
 
@@ -33,4 +34,18 @@ pub struct TextureAssets {
     pub bevy: Handle<Image>,
     #[asset(path = "textures/github.png")]
     pub github: Handle<Image>,
+}
+
+#[derive(AssetCollection, Resource)]
+pub struct Skyboxes {
+    #[asset(path = "textures/skyboxes/ForbiddenCity/cubemap.png")]
+    pub city: Handle<Image>,
+    #[asset(path = "textures/skyboxes/SaintPetersBasilica/cubemap.png")]
+    pub church: Handle<Image>,
+    #[asset(path = "textures/skyboxes/Tallinn/cubemap.png")]
+    pub town_square: Handle<Image>,
+    #[asset(path = "textures/skyboxes/Brudslojan/cubemap.png")]
+    pub mountainside: Handle<Image>,
+    #[asset(path = "textures/skyboxes/MountainPath/cubemap.png")]
+    pub forest: Handle<Image>,
 }
