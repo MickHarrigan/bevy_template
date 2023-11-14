@@ -1,4 +1,8 @@
-use bevy::{core_pipeline::Skybox, prelude::*, render::render_resource::TextureViewDescriptor};
+use bevy::{
+    core_pipeline::Skybox,
+    prelude::*,
+    render::render_resource::{TextureViewDescriptor, TextureViewDimension},
+};
 
 use crate::{camera::CameraController, loading::Skyboxes};
 
@@ -32,11 +36,13 @@ fn skybox_loaded(
         if image.texture_descriptor.array_layer_count() == 1 {
             image.reinterpret_stacked_2d_as_array(image.height() / image.width());
             image.texture_view_descriptor = Some(TextureViewDescriptor {
-            dimension: Some(bevy::render::render_resource::TextureViewDimension::Cube),..default()});
+                dimension: Some(TextureViewDimension::Cube),
+                ..default()
+            });
         }
 
-        for mut box in &mut skyboxes {
-            box.0 = cubemap.handle.clone();
+        for mut skybox in &mut skyboxes {
+            skybox.0 = cubemap.handle.clone();
         }
         cubemap.is_loaded = true;
     }
