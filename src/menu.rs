@@ -32,9 +32,12 @@ impl Default for ButtonColors {
 #[derive(Component)]
 struct Menu;
 
+#[derive(Component)]
+struct MenuCamera;
+
 fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
     info!("menu");
-    commands.spawn(Camera2dBundle::default());
+    commands.spawn((Camera2dBundle::default(), MenuCamera));
     commands
         .spawn((
             NodeBundle {
@@ -215,8 +218,14 @@ fn click_play_button(
     }
 }
 
-fn cleanup_menu(mut commands: Commands, menu: Query<Entity, With<Menu>>) {
+fn cleanup_menu(
+    mut commands: Commands,
+    menu: Query<Entity, With<Menu>>,
+    mut camera_2d: Query<&mut Camera, With<MenuCamera>>,
+) {
     for entity in menu.iter() {
         commands.entity(entity).despawn_recursive();
     }
+    let mut cam = camera_2d.single_mut();
+    cam.is_active = !cam.is_active;
 }

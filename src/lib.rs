@@ -13,6 +13,7 @@ use crate::audio::InternalAudioPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
+use crate::skybox::ThirdDimensionPlugin;
 
 use bevy::app::App;
 #[cfg(debug_assertions)]
@@ -40,6 +41,7 @@ impl Plugin for GamePlugin {
         app.add_state::<GameState>().add_plugins((
             LoadingPlugin,
             MenuPlugin,
+            ThirdDimensionPlugin,
             ActionsPlugin,
             InternalAudioPlugin,
             PlayerPlugin,
