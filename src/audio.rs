@@ -30,7 +30,9 @@ fn start_audio(mut commands: Commands, audio_assets: Res<AudioAssets>, audio: Re
         .looped()
         .with_volume(0.3)
         .handle();
-    commands.insert_resource(FlyingAudio(handle));
+    // commands.insert_resource(FlyingAudio(handle));
+    // this turns off the audio
+    commands.insert_resource(FlyingAudio(Handle::default()));
 }
 
 fn control_flying_sound(

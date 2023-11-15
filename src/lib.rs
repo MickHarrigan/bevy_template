@@ -2,11 +2,12 @@
 
 mod actions;
 mod audio;
+mod camera;
 mod loading;
 mod menu;
 mod player;
 mod skybox;
-mod camera;
+mod stage;
 
 use crate::actions::ActionsPlugin;
 use crate::audio::InternalAudioPlugin;
@@ -14,6 +15,7 @@ use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
 use crate::skybox::ThirdDimensionPlugin;
+use crate::stage::StagePlugin;
 
 use bevy::app::App;
 #[cfg(debug_assertions)]
@@ -42,6 +44,7 @@ impl Plugin for GamePlugin {
             LoadingPlugin,
             MenuPlugin,
             ThirdDimensionPlugin,
+            StagePlugin,
             ActionsPlugin,
             InternalAudioPlugin,
             PlayerPlugin,

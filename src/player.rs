@@ -1,5 +1,4 @@
 use crate::actions::Actions;
-use crate::loading::TextureAssets;
 use crate::GameState;
 use bevy::prelude::*;
 
@@ -17,11 +16,16 @@ impl Plugin for PlayerPlugin {
     }
 }
 
-fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
+fn spawn_player(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     commands
-        .spawn(SpriteBundle {
-            texture: textures.bevy.clone(),
-            transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
+        .spawn(PbrBundle {
+            mesh: meshes.add(shape::Capsule { ..default() }.into()),
+            material: materials.add(Color::ANTIQUE_WHITE.into()),
+            transform: Transform::from_xyz(0., 1., 0.),
             ..Default::default()
         })
         .insert(Player);
@@ -35,11 +39,13 @@ fn move_player(
     if actions.player_movement.is_none() {
         return;
     }
-    let speed = 150.;
+    let speed = 10.;
+    // super messed up way to make the vec2 work for a xz coordinate
+    // but it will be fixed later
     let movement = Vec3::new(
         actions.player_movement.unwrap().x * speed * time.delta_seconds(),
-        actions.player_movement.unwrap().y * speed * time.delta_seconds(),
         0.,
+        actions.player_movement.unwrap().y * speed * time.delta_seconds(),
     );
     for mut player_transform in &mut player_query {
         player_transform.translation += movement;
