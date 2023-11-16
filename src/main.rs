@@ -5,6 +5,7 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy::winit::WinitWindows;
 use bevy::DefaultPlugins;
+use bevy_editor_pls::prelude::*;
 use bevy_game::GamePlugin; // ToDo: Replace bevy_game with your new crate name.
 use std::io::Cursor;
 use winit::window::Icon;
@@ -26,6 +27,7 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(EditorPlugin::default())
         .add_plugins(GamePlugin)
         .add_systems(Startup, set_window_icon)
         .run();
