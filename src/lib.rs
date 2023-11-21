@@ -2,7 +2,6 @@
 
 mod actions;
 mod audio;
-mod camera;
 mod loading;
 mod menu;
 mod player;
@@ -21,6 +20,7 @@ use bevy::app::App;
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
+use bevy_third_person_camera::ThirdPersonCameraPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -45,8 +45,8 @@ impl Plugin for GamePlugin {
             MenuPlugin,
             ThirdDimensionPlugin,
             StagePlugin,
-            ActionsPlugin,
-            InternalAudioPlugin,
+            // ActionsPlugin,
+            // InternalAudioPlugin,
             PlayerPlugin,
         ));
 

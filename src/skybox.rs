@@ -1,12 +1,12 @@
 use bevy::{
     core_pipeline::Skybox,
-    input::mouse::MouseMotion,
     prelude::*,
     render::render_resource::{TextureViewDescriptor, TextureViewDimension},
 };
-use std::f32::consts::PI;
+use bevy_third_person_camera::{CameraFocusModifier, Offset, ThirdPersonCamera, Zoom};
+use std::f32::consts::{E, PI};
 
-use crate::{camera::CameraController, loading::Skyboxes, GameState};
+use crate::{loading::Skyboxes, GameState};
 
 pub struct ThirdDimensionPlugin;
 
@@ -18,7 +18,6 @@ impl Plugin for ThirdDimensionPlugin {
                 (
                     cycle_cubemap_asset,
                     asset_loaded.after(cycle_cubemap_asset),
-                    camera_controller,
                     animate_light_direction,
                 )
                     .run_if(in_state(GameState::Playing)),
@@ -46,15 +45,35 @@ fn setup(mut commands: Commands, asset_server: Res<Skyboxes>) {
         ..default()
     });
 
-    // let skybox_handle = asset_server.load("textures/skyboxes/ForbiddenCity/cubemap.png");
     let skybox_handle = asset_server.city.clone();
     // camera
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0.0, 5.0, 8.0).looking_at(Vec3::ZERO, Vec3::Y),
+            transform: Transform::from_xyz(0.0, 5.0, 8.0)
+                .looking_at(Vec3::new(0., 0.81, 0.), Vec3::Y),
             ..default()
         },
-        CameraController::default(),
+        ThirdPersonCamera {
+            true_focus: Vec3::new(0., 0.81, 0.),
+            aim_enabled: true,
+            aim_zoom: 0.7,
+            zoom_enabled: false,
+            zoom: Zoom::new(1.5, 5.0),
+            offset_enabled: true,
+            offset: Offset::new(0.4, 0.0),
+            focus_modifier: Some(CameraFocusModifier {
+                lower_threshold: PI / 2.,
+                upper_threshold: 2. * PI / 3.,
+                max_forward_displacement: 0.5,
+                max_backward_displacement: 0.5,
+                // typical logistic function centered at 0.5
+                lower_displacement_function: |x| 1. / (1. + E.powf(-15. * (x - 0.5))),
+                upper_displacement_function: |x| 1. / (1. + E.powf(-15. * (x - 0.5))),
+                behind_radius_displacement: 2.0,
+                lower_radius_function: |x| 1. - E.powf(-4. * x),
+            }),
+            ..default()
+        },
         Skybox(skybox_handle.clone()),
     ));
 
@@ -86,31 +105,11 @@ fn cycle_cubemap_asset(
 
         cubemap.index = new_index;
         cubemap.image_handle = match new_index {
-            0 => {
-                info!("Changing to the City!");
-                // asset_server.load("textures/skyboxes/ForbiddenCity/cubemap.png")
-                asset_server.city.clone()
-            }
-            1 => {
-                info!("Changing to the Church!");
-                // asset_server.load("textures/skyboxes/SaintPetersBasilica/cubemap.png")
-                asset_server.church.clone()
-            }
-            2 => {
-                info!("Changing to the Forest!");
-                // asset_server.load("textures/skyboxes/MountainPath/cubemap.png")
-                asset_server.forest.clone()
-            }
-            3 => {
-                info!("Changing to the Town Square!");
-                // asset_server.load("textures/skyboxes/Tallinn/cubemap.png")
-                asset_server.town_square.clone()
-            }
-            4 => {
-                info!("Changing to the Mountains!");
-                // asset_server.load("textures/skyboxes/Brudslojan/cubemap.png")
-                asset_server.mountainside.clone()
-            }
+            0 => asset_server.city.clone(),
+            1 => asset_server.church.clone(),
+            2 => asset_server.forest.clone(),
+            3 => asset_server.town_square.clone(),
+            4 => asset_server.mountainside.clone(),
             _ => unreachable!(),
         };
         cubemap.is_loaded = false;
@@ -148,89 +147,5 @@ fn animate_light_direction(
 ) {
     for mut transform in &mut query {
         transform.rotate_y(time.delta_seconds() * 0.5);
-    }
-}
-
-pub fn camera_controller(
-    time: Res<Time>,
-    mut mouse_events: EventReader<MouseMotion>,
-    mouse_button_input: Res<Input<MouseButton>>,
-    key_input: Res<Input<KeyCode>>,
-    mut move_toggled: Local<bool>,
-    mut query: Query<(&mut Transform, &mut CameraController), With<Camera>>,
-) {
-    let dt = time.delta_seconds();
-
-    if let Ok((mut transform, mut options)) = query.get_single_mut() {
-        if !options.initialized {
-            let (yaw, pitch, _roll) = transform.rotation.to_euler(EulerRot::YXZ);
-            options.yaw = yaw;
-            options.pitch = pitch;
-            options.initialized = true;
-        }
-        if !options.enabled {
-            return;
-        }
-
-        // Handle key input
-        let mut axis_input = Vec3::ZERO;
-        if key_input.pressed(options.key_forward) {
-            axis_input.z += 1.0;
-        }
-        if key_input.pressed(options.key_back) {
-            axis_input.z -= 1.0;
-        }
-        if key_input.pressed(options.key_right) {
-            axis_input.x += 1.0;
-        }
-        if key_input.pressed(options.key_left) {
-            axis_input.x -= 1.0;
-        }
-        if key_input.pressed(options.key_up) {
-            axis_input.y += 1.0;
-        }
-        if key_input.pressed(options.key_down) {
-            axis_input.y -= 1.0;
-        }
-        if key_input.just_pressed(options.keyboard_key_enable_mouse) {
-            *move_toggled = !*move_toggled;
-        }
-
-        // Apply movement update
-        if axis_input != Vec3::ZERO {
-            let max_speed = if key_input.pressed(options.key_run) {
-                options.run_speed
-            } else {
-                options.walk_speed
-            };
-            options.velocity = axis_input.normalize() * max_speed;
-        } else {
-            let friction = options.friction.clamp(0.0, 1.0);
-            options.velocity *= 1.0 - friction;
-            if options.velocity.length_squared() < 1e-6 {
-                options.velocity = Vec3::ZERO;
-            }
-        }
-        let forward = transform.forward();
-        let right = transform.right();
-        transform.translation += options.velocity.x * dt * right
-            + options.velocity.y * dt * Vec3::Y
-            + options.velocity.z * dt * forward;
-
-        // Handle mouse input
-        let mut mouse_delta = Vec2::ZERO;
-        if mouse_button_input.pressed(options.mouse_key_enable_mouse) || *move_toggled {
-            for mouse_event in mouse_events.read() {
-                mouse_delta += mouse_event.delta;
-            }
-        }
-
-        if mouse_delta != Vec2::ZERO {
-            // Apply look update
-            options.pitch = (options.pitch - mouse_delta.y * 0.5 * options.sensitivity * dt)
-                .clamp(-PI / 2., PI / 2.);
-            options.yaw -= mouse_delta.x * options.sensitivity * dt;
-            transform.rotation = Quat::from_euler(EulerRot::ZYX, 0.0, options.yaw, options.pitch);
-        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::actions::Actions;
 use crate::GameState;
-use bevy::prelude::*;
+use bevy::{prelude::*, render::mesh::VertexAttributeValues};
 use bevy_rapier3d::{
     prelude::{
         CharacterAutostep, CharacterLength, Collider, KinematicCharacterController, NoUserData,
@@ -8,6 +8,7 @@ use bevy_rapier3d::{
     },
     render::RapierDebugRenderPlugin,
 };
+use bevy_third_person_camera::*;
 
 pub struct PlayerPlugin;
 
@@ -18,8 +19,9 @@ pub struct Player;
 /// Player logic is only active during the State `GameState::Playing`
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
-            .add_plugins(RapierDebugRenderPlugin::default())
+        app /*.add_plugins(RapierPhysicsPlugin::<NoUserData>::default())
+            .add_plugins(RapierDebugRenderPlugin::default())*/
+            .add_plugins(ThirdPersonCameraPlugin)
             .init_resource::<RapierContext>()
             .insert_resource(RapierConfiguration {
                 gravity: Vec3::Y * -980.0,
@@ -28,32 +30,20 @@ impl Plugin for PlayerPlugin {
             .add_systems(OnEnter(GameState::Playing), spawn_player)
             .add_systems(
                 Update,
-                (move_player, check_player_collisions, update_gravity)
+                (
+                    player_movement_keyboard,
+                    check_player_collisions, /*, update_gravity*/
+                )
                     .run_if(in_state(GameState::Playing)),
             );
     }
 }
 
-fn spawn_player(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
+fn spawn_player(mut commands: Commands, assets: Res<AssetServer>) {
     commands.spawn((
-        PbrBundle {
-            mesh: meshes.add(
-                shape::Capsule {
-                    // radius: 0.5,
-                    // rings: 0,
-                    // depth: 1.0,
-                    // latitudes: 16,
-                    // longitudes: 32,
-                    ..default()
-                }
-                .into(),
-            ),
-            material: materials.add(Color::ANTIQUE_WHITE.into()),
-            transform: Transform::from_xyz(0., 1., 0.),
+        SceneBundle {
+            scene: assets.load("models/Player.gltf#Scene0"),
+            transform: Transform::from_xyz(0., 0., 0.),
             ..Default::default()
         },
         // RigidBody::KinematicPositionBased,
@@ -69,6 +59,7 @@ fn spawn_player(
         //     ..default()
         // },
         Player,
+        ThirdPersonCameraTarget,
     ));
 }
 
@@ -110,30 +101,48 @@ fn check_player_collisions(
     // }
 }
 
-fn move_player(
+fn player_movement_keyboard(
     time: Res<Time>,
-    actions: Res<Actions>,
-    mut player_query: Query<&mut Transform, With<Player>>,
-    mut player_controller: Query<&mut KinematicCharacterController>,
+    keys: Res<Input<KeyCode>>,
+    mut player_q: Query<&mut Transform, With<Player>>,
+    cam_q: Query<&Transform, (With<ThirdPersonCamera>, Without<Player>)>,
 ) {
-    if actions.player_movement.is_none() {
-        return;
-    }
-    let speed = 10.;
-    // super messed up way to make the vec2 work for a xz coordinate
-    // but it will be fixed later
-    let movement = Vec3::new(
-        actions.player_movement.unwrap().x * speed * time.delta_seconds(),
-        0.,
-        actions.player_movement.unwrap().y * speed * time.delta_seconds(),
-    );
-    for mut player_transform in &mut player_query {
-        player_transform.translation += movement;
-    }
-    for mut player_transform in &mut player_controller {
-        player_transform.translation = match player_transform.translation {
-            None => Some(movement),
-            Some(a) => Some(a + movement),
+    for mut player_transform in player_q.iter_mut() {
+        let cam = match cam_q.get_single() {
+            Ok(c) => c,
+            Err(e) => Err(format!("Error retrieving camera: {}", e)).unwrap(),
         };
+
+        let mut direction = Vec2::ZERO;
+
+        // forward
+        if keys.pressed(KeyCode::W) {
+            direction += cam.forward().xz().normalize();
+        }
+
+        // back
+        if keys.pressed(KeyCode::R) {
+            direction += cam.back().xz().normalize();
+        }
+
+        // left
+        if keys.pressed(KeyCode::A) {
+            direction += cam.left().xz().normalize();
+        }
+
+        // right
+        if keys.pressed(KeyCode::S) {
+            direction += cam.right().xz().normalize();
+        }
+
+        let movement = direction * time.delta_seconds();
+        player_transform.translation.x += movement.x;
+        player_transform.translation.z += movement.y;
+        let direction: Vec3 = (direction.x, 0.0, direction.y).into();
+
+        // rotate player to face direction he is currently moving
+        if direction.length_squared() > 0.0 {
+            player_transform.look_to(direction, Vec3::Y);
+        }
     }
 }
